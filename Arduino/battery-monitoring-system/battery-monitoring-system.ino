@@ -1,4 +1,20 @@
-byte state = 0;
+
+
+const byte displayBacklightPin = 9;
+const byte displayPowerPin = 8;
+const byte buzzerPin = 7;
+const byte buttonPin = 2;
+
+
+char buffer[20];
+
+const byte STATE_STANDBY = 0;
+const byte STATE_DISCHARGING = 1;
+const byte STATE_STORAGE_ALERT = 2;
+const byte STATE_ACTIVE = 3;
+const byte STATE_SLEEP = 4;
+const byte STATE_DEBUG = 5;
+byte state = STATE_STANDBY;
 long stateSetTime = 0;
 /*
  * Standby 
@@ -17,13 +33,127 @@ long stateSetTime = 0;
 */
 
 
+
+
 void setup() {
   Serial.begin(115200);
+  relaySetup();
   Display_Setup();
+  backlightInit();
+  CurrentMeasureInit();
+  voltageMeasureInit();
+
+  
+  if(isButtonPressedNow()){ //debug startup
+    state = STATE_DEBUG;
+    stateSetTime = millis();
+    buzzerLongBeep();
+  }
+  else{ //normal startup
+    buzzerInit();
+  }
 }
 
 void loop() {
-  Display_Loop();
+  if(state == STATE_DEBUG){
+    Display_Loop_Debug();
+  }
+  else{
+    Display_Loop();
+    buttonLoop();
+    backlightLoop();
+  }
+
+  if(state == STATE_STANDBY){
+    //change mode from standby to active by button
+    if(isButtonPressedNow()){
+      unsigned long st = millis();
+      while(isButtonPressedNow() && millis() - st < 3000) Display_Loop();
+      if(isButtonPressedNow()){
+        state = STATE_ACTIVE;
+        stateSetTime = millis();
+        enableLowPowerOutput();
+        buzzerBeep();
+        delay(500);
+        enableHighPowerOutput();
+      }
+    }
+  }
+  else if(state == STATE_ACTIVE){
+    //change mode from active to standby by button
+    if(isButtonPressedNow()){
+      unsigned long st = millis();
+      while(isButtonPressedNow() && millis() - st < 3000) Display_Loop();
+      if(isButtonPressedNow()){
+        state = STATE_STANDBY;
+        disableLowPowerOutput();
+        stateSetTime = millis();
+        buzzerBeep();
+        delay(500);
+        disableHighPowerOutput();
+      }
+    }
+  }
   
-  
+}
+
+
+
+
+
+// useful functions
+
+void enableLowPowerOutput(){
+  relay1On();
+  relay3On(); //debug
+  relay4On(); //debug
+}
+void disableLowPowerOutput(){
+  relay1Off();
+}
+
+void enableHighPowerOutput(){
+  relay2On();
+}
+void disableHighPowerOutput(){
+  relay2Off();
+}
+
+int analogReadAverage(byte pin){
+  //do analogread twice with 10ms delay
+  //https://forum.arduino.cc/t/adc-voltmeter-linearity-problems-solved/299805/2
+  analogRead(pin);
+  delay(10);
+  int average = 0;
+  for (int i=0; i < 10; i++) 
+    average = average + analogRead(pin);
+  return average/10;
+}
+
+
+void ttostr(long time, char* buffer){
+  /*receive time in ms and print readable time to buffer*/
+  long totalS = time / 1000;
+  long sph = 60L*60L;
+  long hours = totalS / sph;
+  totalS -= hours*sph;
+  long spm = 60;
+  long minutes = totalS / spm;
+  totalS -= minutes*spm;
+  long seconds = totalS;
+  byte ptr = 0;
+  if(hours != 0){
+    itoa(hours, buffer+ptr, 10);
+    ptr = strlen(buffer);
+    buffer[ptr++] = 'h';
+  }
+  if(minutes!= 0){
+    itoa(minutes, buffer+ptr, 10);
+    ptr = strlen(buffer);
+    buffer[ptr++] = 'm';
+  }
+  itoa(seconds, buffer+ptr, 10);
+  ptr = strlen(buffer);
+  buffer[ptr++] = 's';
+  buffer[ptr++] = '\0';
 }
