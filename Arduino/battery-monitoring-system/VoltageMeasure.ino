@@ -1,8 +1,14 @@
 #include <INA3221.h>
 
+const byte INA3221PowerPin = A1;
+
 INA3221 ina_0(INA3221_ADDR40_GND);
 
 void voltageMeasureInit(){
+  pinMode(INA3221PowerPin, OUTPUT);
+  digitalWrite(INA3221PowerPin, HIGH);
+  delay(10);
+  
   ina_0.begin(&Wire);
   ina_0.reset();
   ina_0.setShuntRes(100, 100, 100);
@@ -23,4 +29,31 @@ float getCell2Voltage(){
 
 float getCell3Voltage(){
   return ina_0.getVoltage(INA3221_CH1);
+}
+
+float getAvgCellVoltage(){
+  return getCell3Voltage() / 3.0f;
+}
+
+float getMinCellVoltage(){
+  float c1 = getCell1Voltage();
+  float c2 = getCell2Voltage();
+  float c3 = getCell3Voltage();
+  float min = c1;
+  if(c2 < min)
+    min = c2;
+  if(c3 < min)
+    min = c3;
+  return min;
+}
+float getMaxCellVoltage(){
+  float c1 = getCell1Voltage();
+  float c2 = getCell2Voltage();
+  float c3 = getCell3Voltage();
+  float max = c1;
+  if(c2 > max)
+    max = c2;
+  if(c3 > max)
+    max = c3;
+  return max;
 }

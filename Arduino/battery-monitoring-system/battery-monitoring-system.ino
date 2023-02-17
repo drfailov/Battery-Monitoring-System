@@ -1,18 +1,18 @@
-
-
 const byte displayBacklightPin = 9;
 const byte displayPowerPin = 8;
 const byte buzzerPin = 7;
-const byte buttonPin = 2;
 
 
 char buffer[20];
+char messageText[20];
+long messageSetTime = 0;
+void message(__FlashStringHelper* m){
+  strcpy_P(messageText, (char*)m);
+  messageSetTime = millis();
+}
 
 const byte STATE_STANDBY = 0;
-const byte STATE_DISCHARGING = 1;
-const byte STATE_STORAGE_ALERT = 2;
 const byte STATE_ACTIVE = 3;
-const byte STATE_SLEEP = 4;
 const byte STATE_DEBUG = 5;
 byte state = STATE_STANDBY;
 long stateSetTime = 0;
@@ -52,6 +52,7 @@ void setup() {
   else{ //normal startup
     buzzerInit();
   }
+  message(F("READY"));
 }
 
 void loop() {
@@ -62,36 +63,64 @@ void loop() {
     Display_Loop();
     buttonLoop();
     backlightLoop();
+    buzzerLoop();
   }
 
   if(state == STATE_STANDBY){
-    //change mode from standby to active by button
-    if(isButtonPressedNow()){
+    if(isButtonPressedNow()){    //change mode from standby to active by button
       unsigned long st = millis();
       while(isButtonPressedNow() && millis() - st < 3000) Display_Loop();
       if(isButtonPressedNow()){
-        state = STATE_ACTIVE;
-        stateSetTime = millis();
-        enableLowPowerOutput();
-        buzzerBeep();
-        delay(500);
-        enableHighPowerOutput();
+        activeMode();
+        return;
+      }
+    }
+
+    if(millis()-stateSetTime > 1000L*60L*60L*24L*3L /*3 days*/){ //go to storage while standby
+    //if(millis()-stateSetTime > 1000L*60L*10L /*10 min*/){ //go to storage while standby
+    //if(millis()-stateSetTime > 1000L*30L/*30 sec*/){ //go to storage while standby  
+      if(getAvgCellVoltage() > 3.85f){
+        enableStorageDischarge();
+      }
+      if(getAvgCellVoltage() < 3.80f){
+        disableStorageDischarge();
       }
     }
   }
-  else if(state == STATE_ACTIVE){
-    //change mode from active to standby by button
-    if(isButtonPressedNow()){
+  else if(state == STATE_ACTIVE){    
+    if(isButtonPressedNow()){   //change mode from active to standby by button
       unsigned long st = millis();
       while(isButtonPressedNow() && millis() - st < 3000) Display_Loop();
       if(isButtonPressedNow()){
-        state = STATE_STANDBY;
-        disableLowPowerOutput();
-        stateSetTime = millis();
-        buzzerBeep();
-        delay(500);
-        disableHighPowerOutput();
+        standbyMode();
+        return;
       }
+    }
+    if(getMinCellVoltage() < 3.20){  //Low voltage shutdown
+        standbyMode();
+        message(F("LOW VOLT OFF"));
+        return;
+    }
+    if(getMaxCellVoltage() < 4.25){  //High voltage shutdown
+        standbyMode();
+        message(F("HIGH VOLT OFF"));
+        return;
+    }
+    if(getBatteryTemp() > 60){  //High temp shutdown
+        standbyMode();
+        message(F("HIGH BAT TEMP OFF"));
+        return;
+    }
+    if(getShuntTemp() > 80){  //High temp shutdown
+        standbyMode();
+        message(F("HIGH SHUNT TEMP OFF"));
+        return;
+    }
+    if(abs(getCurrent_mA()) > 2000){  //activate high power relay
+       enableHighPowerOutput();
+    }
+    if(abs(getCurrent_mA()) < 1500){  //deactivate high power relay
+       disableHighPowerOutput();
     }
   }
   
@@ -102,22 +131,74 @@ void loop() {
 
 
 // useful functions
+void standbyMode(){
+  state = STATE_STANDBY;
+  disableLowPowerOutput();
+  disableHighPowerOutput();
+  disableStorageDischarge();
+  stateSetTime = millis();
+  message(F("OUTPUT DISABLE"));
+  buzzerPlayOff();
+}
+
+void activeMode(){
+  state = STATE_ACTIVE;
+  stateSetTime = millis();
+  enableLowPowerOutput();
+  disableStorageDischarge();
+  message(F("OUTPUT ENABLE"));
+  buzzerPlayOn();
+}
+
 
 void enableLowPowerOutput(){
-  relay1On();
-  relay3On(); //debug
-  relay4On(); //debug
+  if(!isEnabledLowPowerOutput()){
+    relay1On();
+  }
 }
 void disableLowPowerOutput(){
-  relay1Off();
+  if(isEnabledLowPowerOutput())
+    relay1Off();
+}
+bool isEnabledLowPowerOutput(){
+  return getRelay1State();
 }
 
+
 void enableHighPowerOutput(){
-  relay2On();
+  if(!isEnabledHighPowerOutput()){
+    relay2On();
+    message(F("HI_PWR RELAY ON"));
+  }
 }
 void disableHighPowerOutput(){
-  relay2Off();
+  if(isEnabledHighPowerOutput()){
+    relay2Off();
+    message(F("HI_PWR RELAY OFF"));
+  }
 }
+bool isEnabledHighPowerOutput(){
+  return getRelay2State();
+}
+
+
+void enableStorageDischarge(){
+  if(!isEnabledStorageDischarge()){
+    relay3On();
+    message(F("STO ENABLED"));
+  }
+}
+void disableStorageDischarge(){
+  if(isEnabledStorageDischarge()){
+    relay3Off();
+    message(F("STO DISABLED"));
+  }
+}
+bool isEnabledStorageDischarge(){
+  return getRelay3State();
+}
+
+
 
 int analogReadAverage(byte pin){
   //do analogread twice with 10ms delay

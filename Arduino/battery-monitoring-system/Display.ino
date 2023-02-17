@@ -10,7 +10,8 @@ void Display_Setup(){
 }
 
 void Display_Loop(){
-    float temperature = getTemp();
+    float temperatureBattery = getBatteryTemp();
+    float temperatureShunt = getShuntTemp();
     float cell1Voltage = getCell1Voltage();
     float cell2Voltage = getCell2Voltage();
     float cell3Voltage = getCell3Voltage();
@@ -20,9 +21,10 @@ void Display_Loop(){
     
     u8g.firstPage();                                           
     do{  
+        //==== STATE
         u8g.setColorIndex(1);
         u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
-        u8g.setPrintPos(/*x*/0, /*y*/20);
+        u8g.setPrintPos(/*x*/0, /*y*/33);
         if(state == STATE_STANDBY)
           u8g.print("STANDBY");
         if(state == STATE_ACTIVE)
@@ -32,35 +34,111 @@ void Display_Loop(){
         u8g.print(buffer);
         u8g.print(")");
 
-        //balance
+        //==== LOAD VOLTAGE
         u8g.setColorIndex(1);
         u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
-        u8g.setPrintPos(/*x*/110, /*y*/48);
-        u8g.print(cell1Voltage, 2);
-        u8g.setPrintPos(/*x*/110, /*y*/56);
-        u8g.print((cell2Voltage-cell1Voltage), 2);   
-        u8g.setPrintPos(/*x*/110, /*y*/64);
-        u8g.print((cell3Voltage-cell2Voltage), 2);   
-
-
-        //load current
-        u8g.setPrintPos(/*x*/0, /*y*/64);
-        u8g.print(loadCurrentRaw, 10);   
-        u8g.setPrintPos(/*x*/0, /*y*/54);
-        u8g.print(loadCurrent, 10);   
-        u8g.print(" mA");   
-
-
-        //system current
-        u8g.setPrintPos(/*x*/0, /*y*/10);
-        u8g.print(systemCurrent, 10);   
-        u8g.print(" mA");  
-
-        //temperature
-        u8g.setPrintPos(/*x*/60, /*y*/10);
-        u8g.print(temperature, 1);   
-        u8g.print(" *C");  
+        u8g.setPrintPos(/*x*/40, /*y*/5);    
+        u8g.print(cell3Voltage, 2);   
+        u8g.print("V");  
         
+        //==== LOAD CURRENT
+        u8g.setColorIndex(1);
+        u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
+        u8g.setPrintPos(/*x*/40, /*y*/11);
+        u8g.print(loadCurrent, 10);   
+        u8g.print("mA");  
+        
+        //==== POWER METER
+        u8g.setColorIndex(1);
+        u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
+        u8g.setPrintPos(/*x*/40, /*y*/17);
+        u8g.print(getWhSinseReset(), 3);   
+        u8g.print("Wh R"); 
+        
+        //==== POWER METER
+        u8g.setColorIndex(1);
+        u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
+        u8g.setPrintPos(/*x*/40, /*y*/23);
+        u8g.print(getWhSinseFullCharge(), 3);   
+        u8g.print("Wh F"); 
+        
+
+         
+        //==== INPUT
+        u8g.setFont(u8g_font_babyr);                       //шрифт u8g_font_tpssb         u8g_font_baby         u8g_font_fub17
+        u8g.setPrintPos(0, 5);
+        u8g.print("INPUT");
+        u8g.setFont(u8g_font_tpssbn);                       //шрифт u8g_font_tpssb         u8g_font_baby         u8g_font_fub17
+        u8g.setPrintPos(0, 20);
+        float inWattage = 0;
+        if(loadCurrent > 0)
+          inWattage  = cell3Voltage * loadCurrent / 1000; 
+        u8g.print(inWattage , 0);
+        u8g.setFont(u8g_font_babyr);
+        u8g.print("W");
+  
+        //==== OUTPUT
+        u8g.setFont(u8g_font_babyr);                       //шрифт u8g_font_tpssb         u8g_font_baby         u8g_font_fub17
+        u8g.setPrintPos(100, 5);
+        u8g.print("OUTPUT");
+        u8g.setFont(u8g_font_tpssbn);                       //шрифт u8g_font_tpssb         u8g_font_baby         u8g_font_fub17
+        u8g.setPrintPos(100, 20);
+        float outWattage = 0;
+        if(loadCurrent < 0)
+          outWattage = cell3Voltage * -loadCurrent / 1000; 
+        u8g.print(outWattage, 0);
+        u8g.setFont(u8g_font_babyr);
+        u8g.print("W"); 
+
+        //==== TEMPERATURE
+        u8g.setColorIndex(1);
+        u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
+        u8g.setPrintPos(/*x*/0, /*y*/46);
+        u8g.print("BATT: ");  
+        u8g.print(temperatureBattery, 1);   
+        u8g.print(" C");  
+        u8g.setPrintPos(/*x*/0, /*y*/53);
+        u8g.print("SHUNT: ");  
+        u8g.print(temperatureShunt, 1);   
+        u8g.print(" C");  
+        
+        //==== BALANCE
+        u8g.setColorIndex(1);
+        u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
+        u8g.setPrintPos(/*x*/106, /*y*/39);
+        u8g.print(cell1Voltage, 2);
+        u8g.print("v");
+        u8g.setPrintPos(/*x*/106, /*y*/46);
+        u8g.print((cell2Voltage-cell1Voltage), 2);   
+        u8g.print("v");
+        u8g.setPrintPos(/*x*/106, /*y*/53);
+        u8g.print((cell3Voltage-cell2Voltage), 2);   
+        u8g.print("v");
+          
+        //==== MESSAGE
+        u8g.setColorIndex(1);
+        //u8g.drawLine(0, 55, 128, 55);
+        u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
+        u8g.setPrintPos(/*x*/0, /*y*/63);
+        ttostr(millis()-messageSetTime, buffer);
+        u8g.print("");
+        u8g.print(buffer);
+        u8g.print(": ");
+        u8g.print(messageText);   
+
+        //==== STORAGE DISCHAGRE
+        u8g.setColorIndex(1);
+        u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
+        u8g.setPrintPos(/*x*/122, /*y*/64);
+        if(isEnabledStorageDischarge())
+          u8g.print("S");     
+
+        //==== HIGH POWER
+        u8g.setColorIndex(1);
+        u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
+        u8g.setPrintPos(/*x*/122, /*y*/64);
+        if(isEnabledHighPowerOutput())
+          u8g.print("H"); 
     } while(u8g.nextPage());
   
     
