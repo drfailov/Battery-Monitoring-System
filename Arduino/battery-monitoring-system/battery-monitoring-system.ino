@@ -7,6 +7,7 @@ char buffer[20];
 char messageText[20];
 long messageSetTime = 0;
 void message(__FlashStringHelper* m){
+  Serial.print(millis()); Serial.print(": "); Serial.println(m);
   strcpy_P(messageText, (char*)m);
   messageSetTime = millis();
 }
@@ -96,12 +97,12 @@ void loop() {
         return;
       }
     }
-    if(getMinCellVoltage() < 3.20){  //Low voltage shutdown
+    if(getMinCellVoltage() < 3.25){  //Low voltage shutdown
         standbyMode();
         message(F("LOW VOLT OFF"));
         return;
     }
-    if(getMaxCellVoltage() < 4.25){  //High voltage shutdown
+    if(getMaxCellVoltage() > 4.25f){  //High voltage shutdown
         standbyMode();
         message(F("HIGH VOLT OFF"));
         return;

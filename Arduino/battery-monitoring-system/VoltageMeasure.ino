@@ -37,23 +37,25 @@ float getAvgCellVoltage(){
 
 float getMinCellVoltage(){
   float c1 = getCell1Voltage();
-  float c2 = getCell2Voltage();
-  float c3 = getCell3Voltage();
+  float c2 = getCell2Voltage()-c1;
+  float c3 = getCell3Voltage()-c2-c1;
   float min = c1;
   if(c2 < min)
     min = c2;
   if(c3 < min)
     min = c3;
+  Serial.print("minV="); Serial.println(min);
   return min;
 }
 float getMaxCellVoltage(){
   float c1 = getCell1Voltage();
-  float c2 = getCell2Voltage();
-  float c3 = getCell3Voltage();
+  float c2 = getCell2Voltage()-c1;
+  float c3 = getCell3Voltage()-c2-c1;
   float max = c1;
   if(c2 > max)
     max = c2;
   if(c3 > max)
     max = c3;
+  Serial.print("maxV="); Serial.println(max);
   return max;
 }
