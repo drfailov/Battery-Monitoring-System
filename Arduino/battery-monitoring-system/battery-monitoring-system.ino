@@ -97,12 +97,12 @@ void loop() {
         return;
       }
     }
-    if(getMinCellVoltage() < 3.25){  //Low voltage shutdown
+    if(getMinCellVoltage() < 3.25 && getCurrent_mA() < 0){  //Low voltage shutdown
         standbyMode();
         message(F("LOW VOLT OFF"));
         return;
     }
-    if(getMaxCellVoltage() > 4.25f){  //High voltage shutdown
+    if(getMaxCellVoltage() > 4.25 && getCurrent_mA() > 0){  //High voltage shutdown
         standbyMode();
         message(F("HIGH VOLT OFF"));
         return;
