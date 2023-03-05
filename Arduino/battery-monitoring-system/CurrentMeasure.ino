@@ -7,7 +7,10 @@ const byte ADS1115PowerPin = A0;
 int readingFor1A = 128;  //1A = 128
 long lastReadCurrent_mA = 0;
 
-long powerCounterLastReadTime = 0;
+unsigned long lastTimeCurrentNoZero = 0; //last time when current was not zero
+unsigned long lastTimeCurrentZero = 0; //last time when current was zero
+
+unsigned long powerCounterLastReadTime = 0;
 float WhSinceFullCharge = 0;
 float WhSinceReset = 0;
 
@@ -43,6 +46,13 @@ long getCurrent_mA(int16_t raw){
   float currentA = (float)current_mA / 1000.0f;
   float power = voltage*currentA;
   long dT_ms = millis() - powerCounterLastReadTime;   
+  
+  //reguster current flow for auto-turn-off
+  if(abs(current_mA) == 0) //register zero current
+    lastTimeCurrentZero = millis();
+  if(millis() - lastTimeCurrentZero > 500/*ms*/) //reguster non-zero current if last zero reading was be at least 500 ms ago
+    setLastTimeCurrentNoZero();
+  
   //reset counter if full charge
   if(lastReadCurrent_mA > 0 && current_mA <= 0 && voltagePerCell > 4.15f) {
     resetPowerCounterSinceFullCharge();
@@ -91,4 +101,11 @@ void resetPowerCounter(){
 
 long getCurrent_mA(){
   getCurrent_mA(getCurrentRaw());
+}
+
+unsigned long getLastTimeCurrentNoZero(){
+  return lastTimeCurrentNoZero;
+}
+void setLastTimeCurrentNoZero(){
+  lastTimeCurrentNoZero = millis();
 }

@@ -1,3 +1,6 @@
+#include "LowPower.h"
+extern volatile unsigned long timer0_millis;
+
 const byte displayBacklightPin = 9;
 const byte displayPowerPin = 8;
 const byte buzzerPin = 7;
@@ -16,7 +19,7 @@ const byte STATE_STANDBY = 0;
 const byte STATE_ACTIVE = 3;
 const byte STATE_DEBUG = 5;
 byte state = STATE_STANDBY;
-long stateSetTime = 0;
+unsigned long stateSetTime = 0;
 /*
  * Standby 
  *    No output voltage
@@ -87,6 +90,10 @@ void loop() {
         disableStorageDischarge();
       }
     }
+    if(millis()-stateSetTime > 1000L*60L*60L*1L /*1 hour*/){ //sleep if inactive to save power
+      LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);  
+      timer0_millis += 8000;
+    }
   }
   else if(state == STATE_ACTIVE){    
     if(isButtonPressedNow()){   //change mode from active to standby by button
@@ -96,6 +103,11 @@ void loop() {
         standbyMode();
         return;
       }
+    }
+    if(millis()-getLastTimeCurrentNoZero() > 1000L*60L*60L*24L*1L /*1 days*/){ // auto-turn-off if no used at all
+      standbyMode();
+      message(F("UNUSED OFF"));
+      return;
     }
     if(getMinCellVoltage() < 3.25 && getCurrent_mA() < 0){  //Low voltage shutdown
         standbyMode();
@@ -134,6 +146,7 @@ void loop() {
 // useful functions
 void standbyMode(){
   state = STATE_STANDBY;
+  backlightRegisterClick();
   disableLowPowerOutput();
   disableHighPowerOutput();
   disableStorageDischarge();
@@ -144,7 +157,9 @@ void standbyMode(){
 
 void activeMode(){
   state = STATE_ACTIVE;
+  backlightRegisterClick();
   stateSetTime = millis();
+  setLastTimeCurrentNoZero();
   enableLowPowerOutput();
   disableStorageDischarge();
   message(F("OUTPUT ENABLE"));

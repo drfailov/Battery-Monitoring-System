@@ -1,6 +1,6 @@
 bool buttonLastState = false;
 const byte buttonPin = 2;
-long buttonLastPress = 0;
+unsigned long buttonLastPress = 0;
 long buttonContinuousClicks = 0;
 
 

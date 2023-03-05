@@ -6,7 +6,11 @@ U8GLIB_ST7920_128X64_1X u8g(12);                               // Создаём
 void Display_Setup(){
   pinMode(displayPowerPin, OUTPUT);
   digitalWrite(displayPowerPin, HIGH);
-  
+  u8g.firstPage();                                           
+  do{  
+    u8g.setColorIndex(1);
+    u8g.drawBox(0,0,128,64);
+  } while(u8g.nextPage());
 }
 
 void Display_Loop(){
@@ -24,7 +28,7 @@ void Display_Loop(){
         //==== STATE
         u8g.setColorIndex(1);
         u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
-        u8g.setPrintPos(/*x*/0, /*y*/33);
+        u8g.setPrintPos(/*x*/0, /*y*/39);
         if(state == STATE_STANDBY)
           u8g.print("STANDBY");
         if(state == STATE_ACTIVE)
@@ -37,30 +41,38 @@ void Display_Loop(){
         //==== LOAD VOLTAGE
         u8g.setColorIndex(1);
         u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
-        u8g.setPrintPos(/*x*/40, /*y*/5);    
+        u8g.setPrintPos(/*x*/35, /*y*/5);    
         u8g.print(cell3Voltage, 2);   
         u8g.print("V");  
         
         //==== LOAD CURRENT
         u8g.setColorIndex(1);
         u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
-        u8g.setPrintPos(/*x*/40, /*y*/11);
+        u8g.setPrintPos(/*x*/35, /*y*/12);
         u8g.print(loadCurrent, 10);   
         u8g.print("mA");  
+        if(state == STATE_ACTIVE && millis()-getLastTimeCurrentNoZero() > 1000L*30L /*30sec*/){
+          ttostr(millis()-getLastTimeCurrentNoZero(), buffer); //draw time of inactivity if inactive for 10 min
+          u8g.print(" (");
+          u8g.print(buffer);
+          u8g.print(")");
+        }
         
         //==== POWER METER
         u8g.setColorIndex(1);
         u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
-        u8g.setPrintPos(/*x*/40, /*y*/17);
+        u8g.setPrintPos(/*x*/35, /*y*/19);
+        u8g.print("R:"); 
         u8g.print(getWhSinseReset(), 3);   
-        u8g.print("Wh R"); 
+        u8g.print("Wh"); 
         
         //==== POWER METER
         u8g.setColorIndex(1);
         u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
-        u8g.setPrintPos(/*x*/40, /*y*/23);
+        u8g.setPrintPos(/*x*/35, /*y*/26);
+        u8g.print("F:"); 
         u8g.print(getWhSinseFullCharge(), 3);   
-        u8g.print("Wh F"); 
+        u8g.print("Wh"); 
         
 
          

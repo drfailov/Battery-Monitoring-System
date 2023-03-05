@@ -19,25 +19,29 @@ void backlightInit(){
 void backlightLoop(){
   if(isButtonPressedNow())
     backlightRegisterClick();
-  if(millis() - lastBacklightAction < backlightDimTimeout)
+  if(millis() - getLastBacklightActionTime() < backlightDimTimeout)
     analogWrite(displayBacklightPin, backlightState=backlightFullLevel);
     
-  if(millis() - lastBacklightAction > backlightDimTimeout)
+  if(millis() - getLastBacklightActionTime() > backlightDimTimeout)
     if(backlightState > backlightDimLevel)
       analogWrite(displayBacklightPin, (backlightState-=3));
 
   if(state == STATE_STANDBY){
-    if(millis() - lastBacklightAction > backlightOffTimeout)
+    if(millis() - getLastBacklightActionTime() > backlightOffTimeout)
       if(backlightState > backlightOffLevel)
         analogWrite(displayBacklightPin, --backlightState);
   }
   
   if(state == STATE_ACTIVE){
-    if(millis() - lastBacklightAction > backlightOffTimeout)
+    if(millis() - getLastBacklightActionTime() > backlightOffTimeout)
       if(backlightState > backlightVeryDimLevel)
         analogWrite(displayBacklightPin, --backlightState);
   }
 }
 void backlightRegisterClick(){
   lastBacklightAction = millis();
+}
+
+unsigned long getLastBacklightActionTime(){
+  return lastBacklightAction;
 }
