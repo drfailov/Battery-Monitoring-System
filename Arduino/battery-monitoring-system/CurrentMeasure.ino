@@ -99,8 +99,17 @@ void resetPowerCounter(){
   WhSinceReset = 0;
 }
 
+
+long currentReadingIntervalMs = 100;
+float getCurrent_mALastReadingValue = -1;
+unsigned long getCurrent_mALastReadingTime = 0;
 long getCurrent_mA(){
-  getCurrent_mA(getCurrentRaw());
+  if(getCurrent_mALastReadingValue==-1 || millis()-getCurrent_mALastReadingTime>currentReadingIntervalMs){
+    getCurrent_mALastReadingValue = getCurrent_mA(getCurrentRaw());
+    getCurrent_mALastReadingTime = millis();
+  }
+  return getCurrent_mALastReadingValue;
+  
 }
 
 unsigned long getLastTimeCurrentNoZero(){

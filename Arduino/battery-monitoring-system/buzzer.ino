@@ -1,3 +1,6 @@
+
+const byte buzzerPin = 7;
+
 const int BUZZER_ACTION_NONE = 0;
 const int BUZZER_ACTION_SHORT = 1;
 const int BUZZER_ACTION_BEEP = 2;
@@ -65,6 +68,13 @@ void buzzerPlayOff(){
   tone(buzzerPin, 1000, 50);
   delay(60);
   tone(buzzerPin, 700, 200);
+}
+void buzzerPlaySomeBeep(){
+  tone(buzzerPin, 1000, 50);
+  delay(60);
+  tone(buzzerPin, 1000, 50);
+  delay(60);
+  tone(buzzerPin, 1000, 50);
 }
 void buzzerPlayOn(){
   tone(buzzerPin, 1000, 200);

@@ -1,8 +1,15 @@
 #include <INA3221.h>
-
 const byte INA3221PowerPin = A1;
-
 INA3221 ina_0(INA3221_ADDR40_GND);
+
+
+long readingIntervalMs = 100;
+float getCell1VoltageLastReadingValue = -1;
+unsigned long getCell1VoltageLastReadingTime = 0;
+float getCell2VoltageLastReadingValue = -1;
+unsigned long getCell2VoltageLastReadingTime = 0;
+float getCell3VoltageLastReadingValue = -1;
+unsigned long getCell3VoltageLastReadingTime = 0;
 
 void voltageMeasureInit(){
   pinMode(INA3221PowerPin, OUTPUT);
@@ -19,16 +26,27 @@ int16_t getSystemCurrent_mA(){
 }
 
 float getCell1Voltage(){
-  float volt = ina_0.getVoltage(INA3221_CH3);
-  return volt;
+  if(getCell1VoltageLastReadingValue==-1 || millis()-getCell1VoltageLastReadingTime>readingIntervalMs){
+    getCell1VoltageLastReadingValue = ina_0.getVoltage(INA3221_CH3);
+    getCell1VoltageLastReadingTime = millis();
+  }
+  return getCell1VoltageLastReadingValue;
 }
 
 float getCell2Voltage(){
-  return ina_0.getVoltage(INA3221_CH2);
+  if(getCell2VoltageLastReadingValue==-1 || millis()-getCell2VoltageLastReadingTime>readingIntervalMs){
+    getCell2VoltageLastReadingValue = ina_0.getVoltage(INA3221_CH2);
+    getCell2VoltageLastReadingTime = millis();
+  }
+  return getCell2VoltageLastReadingValue;
 }
 
 float getCell3Voltage(){
-  return ina_0.getVoltage(INA3221_CH1);
+  if(getCell3VoltageLastReadingValue==-1 || millis()-getCell3VoltageLastReadingTime>readingIntervalMs){
+    getCell3VoltageLastReadingValue = ina_0.getVoltage(INA3221_CH1);
+    getCell3VoltageLastReadingTime = millis();
+  }
+  return getCell3VoltageLastReadingValue;
 }
 
 float getAvgCellVoltage(){

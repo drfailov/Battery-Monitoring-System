@@ -14,7 +14,7 @@
 #define TEMPERATURENOMINAL 25   
 // how many samples to take and average, more takes longer
 // but is more 'smooth'
-#define NUMSAMPLES 5
+#define NUMSAMPLES 3
 // The beta coefficient of the thermistor (usually 3000-4000)
 #define BCOEFFICIENT 3950
 // the value of the 'other' resistor
@@ -33,7 +33,7 @@ float getBatteryTemp(){
   // take N samples in a row, with a slight delay
   for (i=0; i< NUMSAMPLES; i++) {
    samples[i] = analogRead(PIN_THERMISTOR);
-   delay(10);
+   delay(5);
   }
   
   pinMode(PIN_THERMISTOR_POWER, INPUT);
@@ -90,7 +90,7 @@ float getShuntTemp(){
   // take N samples in a row, with a slight delay
   for (i=0; i< NUMSAMPLES; i++) {
    samples[i] = analogRead(PIN_THERMISTOR2);
-   delay(10);
+   delay(5);
   }
   
   pinMode(PIN_THERMISTOR2_POWER, INPUT);

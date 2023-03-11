@@ -1,7 +1,6 @@
 #include <U8glib.h>                                            // Подключаем библиотеку U8glib
 U8GLIB_ST7920_128X64_1X u8g(12);                               // Создаём объект u8g для работы с дисплеем, указывая номер вывода CS для аппаратной шины SPI
-
-
+const byte displayPowerPin = 8;
 
 void Display_Setup(){
   pinMode(displayPowerPin, OUTPUT);
@@ -11,18 +10,81 @@ void Display_Setup(){
     u8g.setColorIndex(1);
     u8g.drawBox(0,0,128,64);
   } while(u8g.nextPage());
+  delay(500);
 }
 
+#define yt(x) x/200
 void Display_Loop(){
+  long buttonPressingTime = getButtonPressingTime();
+  if(buttonPressingTime > 1000){    
+    u8g.firstPage();                                           
+    do{  
+      u8g.setColorIndex(1);
+      u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
+      u8g.setPrintPos(/*x*/0, /*y*/64);
+      u8g.print(buttonPressingTime, 10);   
+      u8g.print("ms");  
+      u8g.drawTriangle(120,yt(buttonPressingTime), 120+8,yt(buttonPressingTime)-4, 120+8,yt(buttonPressingTime)+4);
+
+      u8g.setColorIndex(1);
+      u8g.drawLine(0, yt(2000), 119, yt(2000));
+      
+      if(buttonPressingTime >= 2000 && buttonPressingTime < 5000){
+        u8g.drawBox(0,yt(2000),120,yt(5000)-yt(2000));
+        u8g.setColorIndex(0);
+      }
+      u8g.setPrintPos(/*x*/40, /*y*/yt(3500)+3);
+      u8g.print(state == STATE_STANDBY?F("TURN ON"):F("TURN OFF"));  
+      
+      u8g.setColorIndex(1);
+      u8g.drawLine(0, yt(5000), 119, yt(5000));
+      
+      if(buttonPressingTime >= 5000 && buttonPressingTime < 7000){
+        u8g.drawBox(0,yt(5000),120,yt(7000)-yt(5000));
+        u8g.setColorIndex(0);
+      }
+      u8g.setPrintPos(/*x*/40, /*y*/yt(6000)+3);
+      u8g.print(isBacklightForceOn()?F("BACKLIGHT AUTO"):F("BACKLIGHT ON")); 
+      
+      u8g.setColorIndex(1);
+      u8g.drawLine(0, yt(7000), 119, yt(7000));
+      
+      if(buttonPressingTime >= 7000 && buttonPressingTime < 9000){
+        u8g.drawBox(0,yt(7000),120,yt(9000)-yt(7000));
+        u8g.setColorIndex(0);
+      }
+      u8g.setPrintPos(/*x*/40, /*y*/yt(8000)+3);
+      u8g.print(F("RESET Wh")); 
+      
+      u8g.setColorIndex(1);
+      u8g.drawLine(0, yt(9000), 119, yt(9000));
+      
+      if(buttonPressingTime >= 9000 && buttonPressingTime < 11000){
+        u8g.drawBox(0,yt(9000),120,yt(11000)-yt(9000));
+        u8g.setColorIndex(0);
+      }
+      u8g.setPrintPos(/*x*/40, /*y*/yt(10000)+3);
+      u8g.print(F("REBOOT")); 
+      
+      u8g.setColorIndex(1);
+      u8g.drawLine(0, yt(11000), 119, yt(11000));
+      
+      
+      
+    } while(u8g.nextPage());
+    return;
+  }
+  
     float temperatureBattery = getBatteryTemp();
     float temperatureShunt = getShuntTemp();
     float cell1Voltage = getCell1Voltage();
     float cell2Voltage = getCell2Voltage();
     float cell3Voltage = getCell3Voltage();
     int16_t systemCurrent = getSystemCurrent_mA();
-    int16_t loadCurrentRaw = getCurrentRaw();
-    long loadCurrent = getCurrent_mA(loadCurrentRaw);
-    
+    //int16_t loadCurrentRaw = getCurrentRaw();
+    //long loadCurrent = getCurrent_mA(loadCurrentRaw);
+    long loadCurrent = getCurrent_mA();
+
     u8g.firstPage();                                           
     do{  
         //==== STATE
@@ -138,19 +200,31 @@ void Display_Loop(){
         u8g.print(": ");
         u8g.print(messageText);   
 
+        int x = 122+5;
         //==== STORAGE DISCHAGRE
         u8g.setColorIndex(1);
         u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
-        u8g.setPrintPos(/*x*/122, /*y*/64);
-        if(isEnabledStorageDischarge())
+        if(isEnabledStorageDischarge()){
+          u8g.setPrintPos(/*x*/x-=5, /*y*/64);
           u8g.print("S");     
+        }
 
         //==== HIGH POWER
         u8g.setColorIndex(1);
         u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
-        u8g.setPrintPos(/*x*/122, /*y*/64);
-        if(isEnabledHighPowerOutput())
+        if(isEnabledHighPowerOutput()){
+          u8g.setPrintPos(/*x*/x-=5, /*y*/64);
           u8g.print("H"); 
+        }
+
+        //==== FORCE BACKLIGHT
+        u8g.setColorIndex(1);
+        u8g.setFont(/*font*/u8g_font_babyr);                       //шрифт u8g_font_tpssbr         u8g_font_babyr         u8g_font_fub17n      
+        if(isBacklightForceOn()){
+          u8g.setPrintPos(/*x*/x-=5, /*y*/64);
+          u8g.print("B"); 
+        }
+          
     } while(u8g.nextPage());
   
     

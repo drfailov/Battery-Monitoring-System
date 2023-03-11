@@ -1,11 +1,7 @@
 #include "LowPower.h"
+
 extern volatile unsigned long timer0_millis;
-
-const byte displayBacklightPin = 9;
-const byte displayPowerPin = 8;
-const byte buzzerPin = 7;
-
-
+void(* resetFunc) (void) = 0; //declare reset function @ address 0
 char buffer[20];
 char messageText[20];
 long messageSetTime = 0;
@@ -71,14 +67,14 @@ void loop() {
   }
 
   if(state == STATE_STANDBY){
-    if(isButtonPressedNow()){    //change mode from standby to active by button
-      unsigned long st = millis();
-      while(isButtonPressedNow() && millis() - st < 3000) Display_Loop();
-      if(isButtonPressedNow()){
-        activeMode();
-        return;
-      }
-    }
+//    if(isButtonPressedNow()){    //change mode from standby to active by button
+//      unsigned long st = millis();
+//      while(isButtonPressedNow() && millis() - st < 3000) Display_Loop();
+//      if(isButtonPressedNow()){
+//        activeMode();
+//        return;
+//      }
+//    }
 
     if(millis()-stateSetTime > 1000L*60L*60L*24L*3L /*3 days*/){ //go to storage while standby
     //if(millis()-stateSetTime > 1000L*60L*10L /*10 min*/){ //go to storage while standby
@@ -90,51 +86,68 @@ void loop() {
         disableStorageDischarge();
       }
     }
-    if(millis()-stateSetTime > 1000L*60L*60L*1L /*1 hour*/){ //sleep if inactive to save power
+    if(millis()-getLastBacklightActionTime() > 1000L*60L*60L*1L /*1 hour*/){ //sleep if inactive to save power
       LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);  
       timer0_millis += 8000;
     }
   }
   else if(state == STATE_ACTIVE){    
-    if(isButtonPressedNow()){   //change mode from active to standby by button
-      unsigned long st = millis();
-      while(isButtonPressedNow() && millis() - st < 3000) Display_Loop();
-      if(isButtonPressedNow()){
-        standbyMode();
-        return;
-      }
-    }
+//    if(isButtonPressedNow()){   //change mode from active to standby by button
+//      unsigned long st = millis();
+//      while(isButtonPressedNow() && millis() - st < 3000) Display_Loop();
+//      if(isButtonPressedNow()){
+//        standbyMode();
+//        return;
+//      }
+//    }
+    const bool profiling = false;
+    unsigned long last = millis();//profiling
     if(millis()-getLastTimeCurrentNoZero() > 1000L*60L*60L*24L*1L /*1 days*/){ // auto-turn-off if no used at all
       standbyMode();
       message(F("UNUSED OFF"));
       return;
     }
+    if(profiling){Serial.print(F("UNUSED OFF, ms: ")); Serial.println(millis() - last); last = millis();} //profiling
+    
     if(getMinCellVoltage() < 3.25 && getCurrent_mA() < 0){  //Low voltage shutdown
         standbyMode();
+        setBacklightForceOn(false);
         message(F("LOW VOLT OFF"));
         return;
     }
+    if(profiling){Serial.print(F("LOW VOLT OFF, ms: ")); Serial.println(millis() - last); last = millis(); }//profiling
+    
     if(getMaxCellVoltage() > 4.25 && getCurrent_mA() > 0){  //High voltage shutdown
         standbyMode();
         message(F("HIGH VOLT OFF"));
         return;
     }
+    if(profiling){Serial.print(F("HIGH VOLT OFF, ms: ")); Serial.println(millis() - last); last = millis(); }//profiling
+    
     if(getBatteryTemp() > 60){  //High temp shutdown
         standbyMode();
         message(F("HIGH BAT TEMP OFF"));
         return;
     }
+    if(profiling){Serial.print(F("HIGH BAT TEMP OFF, ms: ")); Serial.println(millis() - last); last = millis(); }//profiling
+    
     if(getShuntTemp() > 80){  //High temp shutdown
         standbyMode();
         message(F("HIGH SHUNT TEMP OFF"));
         return;
     }
+    if(profiling){Serial.print(F("HIGH SHUNT TEMP OFF, ms: ")); Serial.println(millis() - last); last = millis(); }//profiling
+    
     if(abs(getCurrent_mA()) > 2000){  //activate high power relay
        enableHighPowerOutput();
     }
+    if(profiling){Serial.print(F("HI RELAY ON, ms: ")); Serial.println(millis() - last); last = millis(); }//profiling
+    
     if(abs(getCurrent_mA()) < 1500){  //deactivate high power relay
        disableHighPowerOutput();
     }
+    if(profiling){Serial.print(F("HI RELAY OFF, ms: ")); Serial.println(millis() - last); last = millis(); }//profiling
+    if(profiling){Serial.println(F("========================="));}
   }
   
 }
@@ -254,3 +267,15 @@ void ttostr(long time, char* buffer){
   buffer[ptr++] = 's';
   buffer[ptr++] = '\0';
 }
+
+
+
+
+
+/*
+2023-03-11 Button menu
+2023-03-11 Option to set backlight on
+2023-03-11 Better performance
+2023-03-11 Reboot option
+2023-03-11 Profiling option
+*/

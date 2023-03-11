@@ -1,5 +1,7 @@
 byte backlightState = 0;
+const byte displayBacklightPin = 9;
 unsigned long lastBacklightAction = 0;
+bool backlightForceOn = false;
 
 
 byte backlightFullLevel = 200;
@@ -17,7 +19,7 @@ void backlightInit(){
 }
 
 void backlightLoop(){
-  if(isButtonPressedNow())
+  if(isButtonPressedNow() || isBacklightForceOn())
     backlightRegisterClick();
   if(millis() - getLastBacklightActionTime() < backlightDimTimeout)
     analogWrite(displayBacklightPin, backlightState=backlightFullLevel);
@@ -44,4 +46,12 @@ void backlightRegisterClick(){
 
 unsigned long getLastBacklightActionTime(){
   return lastBacklightAction;
+}
+
+bool isBacklightForceOn(){
+  return backlightForceOn;
+}
+
+void setBacklightForceOn(bool v){
+  backlightForceOn = v;
 }
